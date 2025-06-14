@@ -117,7 +117,7 @@ void Out_Bitmap_X(int x, int y, int LeftRight, int dist, int dly, int spd, const
 	int x_p = x;
 	int y_p = y;
 	int spd_t = spd;
-	for (int i = 0; i < 128; i++) {
+	for (int i = 0; i < dist; i++) {
 		for (int j = 0; j < spd_t;j++) {
 			x_p = x_p + LeftRight;
 			display.clearDisplay();
@@ -131,6 +131,8 @@ void Out_Bitmap_X(int x, int y, int LeftRight, int dist, int dly, int spd, const
 		
 	}
 }
+
+
 
 // void Move_Bitmap_(int x, int y, int x_t, int y_t, int LeftRight, int dly, const unsigned char* bmp) {
 // 	// x: start position; y: start position; LeftRight: -1 for left, 1 for right; dist: distance to move; dly: delay between frames, dly must bigger than spd; spd: speed of movement
@@ -166,16 +168,18 @@ void setup() {
   delay(100);
   Serial.println("Check");
   
-  //Display Test
-	int logo_pos = 0;
-	for (int i=0; i<128; i++) { 
-		display.clearDisplay();
-		logo_pos = (pow(i-128,2)+pow(i-128,2))/256;
-		display.drawBitmap(logo_pos, 0, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
-		Serial.println(logo_pos);
-		display.display();
-		delay(10);
-	}
+//   //Display Test
+// 	int logo_pos = 0;
+// 	for (int i=0; i<128; i++) { 
+// 		display.clearDisplay();
+// 		logo_pos = (pow(i-128,2)+pow(i-128,2))/256;
+// 		display.drawBitmap(logo_pos, 0, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
+// 		Serial.println(logo_pos);
+// 		display.display();
+// 		delay(10);
+// 	}
+
+	Out_Bitmap_X(128, 0, -1, 130, 15, 1, epd_bitmap_EZ_Pedal_Logo);
 
 
   // display.clearDisplay();
