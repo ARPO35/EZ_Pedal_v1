@@ -155,6 +155,13 @@ void Out_Bitmap_X(int x, int y, int LeftRight, int dist, int dly, int spd, const
 // 	}
 // }
 
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 void setup() {
     Serial.println("Device Online");
 
@@ -168,18 +175,18 @@ void setup() {
   delay(100);
   Serial.println("Check");
   
-//   //Display Test
-// 	int logo_pos = 0;
-// 	for (int i=0; i<128; i++) { 
-// 		display.clearDisplay();
-// 		logo_pos = (pow(i-128,2)+pow(i-128,2))/256;
-// 		display.drawBitmap(logo_pos, 0, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
-// 		Serial.println(logo_pos);
-// 		display.display();
-// 		delay(10);
-// 	}
+  //Display Test
+	int logo_pos = 0;
+	for (int i=0; i<128; i++) { 
+		display.clearDisplay();
+		logo_pos = (pow(i-128,2)+pow(i-128,2))/256;
+		display.drawBitmap(logo_pos, 0, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
+		Serial.println(logo_pos);
+		display.display();
+		delay(10);
+	}
 
-	Out_Bitmap_X(128, 0, -1, 130, 15, 1, epd_bitmap_EZ_Pedal_Logo);
+
 
 
   // display.clearDisplay();
