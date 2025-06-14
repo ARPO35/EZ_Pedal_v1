@@ -25,78 +25,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_
 
 
 
-/**
- * @brief 刷新显示屏，通过执行一系列显示命令更新内容。
- * 
- * 此函数会清空显示屏，遍历显示命令列表，并执行每个命令以更新显示屏。
- * 命令可以包括绘制位图、像素或文本。在处理完所有命令后，显示屏将更新以反映更改。
- * 
- * `DisplayCommand` 结构体定义了命令的类型及其相关参数：
- * - `BITMAP`：在指定位置绘制位图，具有给定的尺寸和颜色。
- * - `PIXEL`：在指定位置绘制单个像素，具有给定的颜色。
- * - `TEXT`：在指定位置显示文本，具有给定的大小和颜色。
- * 
- * @note `display_commands` 向量是静态的，这意味着它在多次调用此函数时会保留其状态。
- */
 
-struct DisplayCommand {
-    enum Type { BITMAP, PIXEL, TEXT } type;
-    String identifier;  // 添加标识符
-    int x, y;
-    const unsigned char* bitmap;
-    int width, height;
-    int color;
-    String text;
-    int text_size;
-};
-
-static std::vector<DisplayCommand> display_commands;
-
-void refresh_display() {
-
-
-	display.clearDisplay();
-	for(const auto& cmd : display_commands) {
-		switch(cmd.type) {
-			case DisplayCommand::BITMAP:
-				display.drawBitmap(cmd.x, cmd.y, cmd.bitmap, cmd.width, cmd.height, cmd.color);
-				break;
-			case DisplayCommand::PIXEL:
-				display.drawPixel(cmd.x, cmd.y, cmd.color);
-				break;
-			case DisplayCommand::TEXT:
-				display.setTextSize(cmd.text_size);
-				display.setTextColor(cmd.color);
-				display.setCursor(cmd.x, cmd.y);
-				display.print(cmd.text);
-				break;
-		}
-	}
-	display.display();
-}
-
-void add_bitmap_command(String identifier, int x, int y, const unsigned char* bitmap, int width, int height, int color) {
-    DisplayCommand cmd;
-    cmd.type = DisplayCommand::BITMAP;
-    cmd.identifier = identifier;  // 设置标识符
-    cmd.x = x;
-    cmd.y = y;
-    cmd.bitmap = bitmap;
-    cmd.width = width;
-    cmd.height = height;
-    cmd.color = color;
-    display_commands.push_back(cmd);
-}
-
-void remove_command_by_identifier(String identifier) {
-    display_commands.erase(
-        std::remove_if(display_commands.begin(), display_commands.end(),
-            [identifier](const DisplayCommand& cmd) { 
-                return cmd.identifier == identifier; 
-            }),
-        display_commands.end()
-    );
-}
 
 // void out_GoLeft(int x, int y, int dist, int dly, int spd, const unsigned char* bmp) {
 // 	int xt = x;
@@ -188,12 +117,12 @@ void out_GoLeft(int x, int y, int dist, int dly, int spd, const unsigned char* b
 	int yt = y;
 	int spd_t = spd;
 	for (int i = 0; i < 128; i++) {
-		add_bitmap_command("goleft",xt, yt, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
 		for (int j = 0; j < spd_t;j++) {
 			xt = xt - 1;
-			refresh_display();
+			display.clearDisplay();
+			display.drawBitmap(xt, yt, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
+			display.display();
 		}
-		
 		spd_t = spd_t + spd; 
 	}
 }
