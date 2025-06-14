@@ -112,20 +112,46 @@ const unsigned char* epd_bitmap_allArray[1] = {
 	epd_bitmap_EZ_Pedal_Logo
 };
 
-void out_GoLeft(int x, int y, int dist, int dly, int spd, const unsigned char* bmp) {
-	int xt = x;
-	int yt = y;
+void Out_Bitmap_X(int x, int y, int LeftRight, int dist, int dly, int spd, const unsigned char* bmp) {
+	// x: start position; y: start position; LeftRight: -1 for left, 1 for right; dist: distance to move; dly: delay between frames, dly must bigger than spd; spd: speed of movement
+	int x_p = x;
+	int y_p = y;
 	int spd_t = spd;
 	for (int i = 0; i < 128; i++) {
 		for (int j = 0; j < spd_t;j++) {
-			xt = xt - 1;
+			x_p = x_p + LeftRight;
 			display.clearDisplay();
-			display.drawBitmap(xt, yt, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
+			display.drawBitmap(x_p, y_p, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
 			display.display();
+			delay(dly - spd_t);
 		}
-		spd_t = spd_t + spd; 
+		if (spd_t < dly) {
+			spd_t = spd_t + spd; 
+		}
+		
 	}
 }
+
+// void Move_Bitmap_(int x, int y, int x_t, int y_t, int LeftRight, int dly, const unsigned char* bmp) {
+// 	// x: start position; y: start position; LeftRight: -1 for left, 1 for right; dist: distance to move; dly: delay between frames, dly must bigger than spd; spd: speed of movement
+// 	int x_p = x;
+// 	int y_p = y;
+// 	int spd_t = spd;
+// 	for (int i = 0; i < 128; i++) {
+// 		// Move to target position
+// 		for (int j = 0; j < spd_t;j++) {
+// 			x_p = x_p + LeftRight;
+// 			display.clearDisplay();
+// 			display.drawBitmap(x_p, y_p, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
+// 			display.display();
+// 			delay(dly - spd_t);
+// 		}
+// 		if (spd_t < dly) {
+// 			spd_t = spd_t + spd; 
+// 		}
+		
+// 	}
+// }
 
 void setup() {
     Serial.println("Device Online");
@@ -174,6 +200,7 @@ void setup() {
     delay(100);
   }
 
+	Out_Bitmap_X(0, 0, -1, 130, 15, 1, epd_bitmap_EZ_Pedal_Logo);
 //   for (int i = 0; i < 2048; i++) {
 // 	display.drawPixel(random(0, 127), random(0, 63), SSD1306_WHITE);
 // 	display.display();
