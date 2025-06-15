@@ -14,30 +14,6 @@
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RES, OLED_CS);
 
-// void out_GoLeft(int x, int y, int tg_x, int tg_y, int time, bitmap bmp) {
-// 	int xt = x;
-// 	int yt = y;
-// 	for (int i = 0; i < 128; i++) {
-// 		display.clearDisplay();
-// 		display.drawBitmap(xt, yt, bmp, 128, 64, SSD1306_WHITE);
-// 	}
-// }
-
-
-
-
-
-// void out_GoLeft(int x, int y, int dist, int dly, int spd, const unsigned char* bmp) {
-// 	int xt = x;
-// 	int yt = y;
-// 	for (int i = 0; i < 128; i++) {
-// 		display.clearDisplay();
-// 		display.drawBitmap(xt, yt, bmp, 128, 64, SSD1306_WHITE);
-// 	}
-// }
-
-
-
 // 'EZ_Pedal_Logo', 128x64px
 const unsigned char epd_bitmap_EZ_Pedal_Logo [] PROGMEM = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -112,6 +88,10 @@ const unsigned char* epd_bitmap_allArray[1] = {
 	epd_bitmap_EZ_Pedal_Logo
 };
 
+
+
+
+
 void Out_Bitmap_X(int x, int y, int LeftRight, int dist, int dly, int spd, const unsigned char* bmp) {
 	// x: start position; y: start position; LeftRight: -1 for left, 1 for right; dist: distance to move; dly: delay between frames, dly must bigger than spd; spd: speed of movement
 	int x_p = x;
@@ -121,7 +101,7 @@ void Out_Bitmap_X(int x, int y, int LeftRight, int dist, int dly, int spd, const
 		for (int j = 0; j < spd_t;j++) {
 			x_p = x_p + LeftRight;
 			display.clearDisplay();
-			display.drawBitmap(x_p, y_p, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
+			display.drawBitmap(x_p, y_p, bmp, 128, 64, SSD1306_WHITE);
 			display.display();
 			delay(dly - spd_t);
 		}
@@ -134,28 +114,67 @@ void Out_Bitmap_X(int x, int y, int LeftRight, int dist, int dly, int spd, const
 
 
 
-// void Move_Bitmap_(int x, int y, int x_t, int y_t, int LeftRight, int dly, const unsigned char* bmp) {
+// void Move_Bitmap(int x, int y, int x_t, int y_t, int dly, const unsigned char* bmp) {
 // 	// x: start position; y: start position; LeftRight: -1 for left, 1 for right; dist: distance to move; dly: delay between frames, dly must bigger than spd; spd: speed of movement
 // 	int x_p = x;
 // 	int y_p = y;
-// 	int spd_t = spd;
-// 	for (int i = 0; i < 128; i++) {
-// 		// Move to target position
-// 		for (int j = 0; j < spd_t;j++) {
-// 			x_p = x_p + LeftRight;
-// 			display.clearDisplay();
-// 			display.drawBitmap(x_p, y_p, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
-// 			display.display();
-// 			delay(dly - spd_t);
+// 	int dist_x = x_t - x;
+// 	int spd_x = 1;
+// 	int dist_y = y_t - y;
+// 	int spd_y = 1;
+// 	int delay_x = 0;
+// 	int delay_y = 0;
+// 	for (; x_p < dist_x / 2) {
+// 		if (delay_x = 0) {
+// 			display.clearDisplay();		
 // 		}
-// 		if (spd_t < dly) {
-// 			spd_t = spd_t + spd; 
-// 		}
-		
 // 	}
 // }
 
 
+
+void Move_Bitmap(int x, int y, int x_t, int y_t, int dly, const unsigned char* bmp, String return_xy) { //参数外置
+	// x: start position; y: start position; LeftRight: -1 for left, 1 for right; dist: distance to move; dly: delay between frames, dly must bigger than spd; spd: speed of movement
+	int x_p = x;
+	int y_p = y;
+	int dist_x = x_t - x;
+	int spd_x = 1;
+	int dist_y = y_t - y;
+	int spd_y = 1;
+	int delay_x = 0;
+	int delay_y = 0;
+
+	for (; x_p < dist_x / 2) {
+		if (delay_x = 0) {
+			//判断方向并更新位置
+			if (x - x_t < 0) {
+				x_p = x_p + 1;
+			}
+			else {
+				x_p = x_p - 1;
+			}
+			if (y - y_t < 0) {
+				y_p = y_p + 1;
+			}
+			else {
+				y_p = y_p - 1;
+			}
+			spd_x += 1;
+			spd_y += 1;
+		}
+	for (; x_p >= dist_x / 2) {
+		spd_x -= 1;
+		spd_y -= 1;
+	}
+	
+	}
+	if (return_xy = x) {
+		return x_p;
+	}
+	else {
+		return y_p;
+	}
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,7 +200,6 @@ void setup() {
 		display.clearDisplay();
 		logo_pos = (pow(i-128,2)+pow(i-128,2))/256;
 		display.drawBitmap(logo_pos, 0, epd_bitmap_EZ_Pedal_Logo, 128, 64, SSD1306_WHITE);
-		Serial.println(logo_pos);
 		display.display();
 		delay(10);
 	}
