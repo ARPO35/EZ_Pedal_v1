@@ -133,19 +133,20 @@ void Out_Bitmap_X(int x, int y, int LeftRight, int dist, int dly, int spd, const
 
 
 
-void Move_Bitmap(int x, int y, int x_t, int y_t, int dly, const unsigned char* bmp, String return_xy) { //参数外置
+int Move_Bitmap(int x, int y, int x_t, int y_t, int dly, const unsigned char* bmp, String return_xy) { //参数外置
 	// x: start position; y: start position; LeftRight: -1 for left, 1 for right; dist: distance to move; dly: delay between frames, dly must bigger than spd; spd: speed of movement
 	int x_p = x;
 	int y_p = y;
-	int dist_x = x_t - x;
+	int dist_x = abs(x_t - x);
 	int spd_x = 1;
-	int dist_y = y_t - y;
+	int dist_y = abs(y_t - y);
 	int spd_y = 1;
 	int delay_x = 0;
 	int delay_y = 0;
 
-	for (; x_p < dist_x / 2) {
-		if (delay_x = 0) {
+	while (abs(x_p - x_t) < dist_x / 2) {
+		
+		if (delay_x < 1) {
 			//判断方向并更新位置
 			if (x - x_t < 0) {
 				x_p = x_p + 1;
@@ -153,22 +154,28 @@ void Move_Bitmap(int x, int y, int x_t, int y_t, int dly, const unsigned char* b
 			else {
 				x_p = x_p - 1;
 			}
+		}
+		if (delay_y < 1) {
+			//判断方向并更新位置
 			if (y - y_t < 0) {
 				y_p = y_p + 1;
 			}
 			else {
 				y_p = y_p - 1;
 			}
-			spd_x += 1;
-			spd_y += 1;
 		}
-	for (; x_p >= dist_x / 2) {
+		delay_x -= 1;
+		delay_y -= 1;
+		spd_x += 1;
+		spd_y += 1;
+	}
+	while (abs(x_p - x_t) >= dist_x / 2) {
 		spd_x -= 1;
 		spd_y -= 1;
 	}
+
 	
-	}
-	if (return_xy = x) {
+	if (return_xy == "x") {
 		return x_p;
 	}
 	else {
