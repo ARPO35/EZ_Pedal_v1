@@ -18,6 +18,11 @@ usb_midi_class usbMidi;
 int channel = 1;
 int anaout1;
 int deb;
+bool cLeft = false;
+bool cRight = false;
+bool cEnter = false;
+bool cExit = false;
+
 struct ValueLine
 {
 	int x;
@@ -52,7 +57,7 @@ void ShowPageTitle() {
 			display.drawChar(page_now.x + (i*6), page_now.y, page_now.title[i], SSD1306_WHITE, SSD1306_BLACK, 1);
 		}
 		display.drawLine(page_now.x+1 + (page_now.title.length() * 6), page_now.y, page_now.x+1 + (page_now.title.length() * 6), page_now.y + 8, SSD1306_WHITE);
-		display.drawLine(page_now.x, page_now.y + 8, page_now.x+1 + (page_now.title.length() * 6), page_now.y + 8, SSD1306_WHITE);
+		display.drawLine(page_now.x, page_now.y + 9, page_now.x+1 + (page_now.title.length() * 6), page_now.y + 9, SSD1306_WHITE);
 }
 
 // 'EZ_Pedal_Logo', 128x64px
@@ -277,6 +282,10 @@ void char_arpo() {
 void setup()
 {
 	pinMode(15, INPUT);
+	pinMode(4, INPUT);
+	pinMode(5, INPUT);
+	pinMode(6, INPUT);
+	pinMode(7, INPUT);
 	deb = analogRead(15);
 	page.page = "main";
 
@@ -324,8 +333,7 @@ void setup()
 	//   }
 }
 
-void loop()
-{
+void loop() {
 	display.clearDisplay();
 
 	//CC1 Output
@@ -344,6 +352,56 @@ void loop()
 		usbMidi.sendControlChange(1, anaout1, channel);
 	}
 
+	//Controll
+	if (digitalRead(4) == HIGH) {
+		delay(50);
+		if (digitalRead(4) == LOW) {
+			cLeft = true;
+		}
+	}
+	if (digitalRead(5) == HIGH) {
+		delay(50);
+		if (digitalRead(5) == LOW) {
+			cRight = true;
+		}
+	}
+	if (digitalRead(6) == HIGH) {
+		delay(50);
+		if (digitalRead(6) == LOW) {
+			cExit = true;
+		}
+	}
+	if (digitalRead(7) == HIGH) {
+		delay(50);
+		if (digitalRead(7) == LOW) {
+			cEnter = true;
+		}
+	}
+
+	//Page Switch
+	//main settings
+	if (cLeft) {
+		cLeft = false;
+		if (page.page == "main") {
+			page.page = "settings";
+			page.step = 0;
+			page_now.title = page.page;
+			page_now.x = 0;
+			page_now.y = 0;
+		}
+		else if (page.page == "settings") {
+			page.page = "main";
+			page.step = 0;
+			page_now.title = page.page;
+			page_now.x = 0;
+			page_now.y = 0;
+		}
+	}
+	
+	
+
+	
+
 	//display
 	if (page.page == "main") {
 		if (page.step < 127) {
@@ -358,6 +416,13 @@ void loop()
 		display.drawLine(0,   valueline.y, 	   127, valueline.y, 	 SSD1306_WHITE);
 		display.drawLine(0,   valueline.y, 	   0,   valueline.y - 5, SSD1306_WHITE);
 		display.drawLine(127, valueline.y, 	   127, valueline.y - 5, SSD1306_WHITE);
+		ShowPageTitle();
+	}
+
+	else if (page.page == "settings") {
+		if (page.step < 127) {
+			page.step += 1;
+		}
 		ShowPageTitle();
 	}
 	
