@@ -18,9 +18,42 @@ usb_midi_class usbMidi;
 int channel = 1;
 int anaout1;
 int deb;
+struct ValueLine
+{
+	int x;
+	int y;
+	int value = 0;
+};
+ValueLine valueline;
+
+struct PageSwitch
+{
+	String page = "main";
+	int step = 0;
+};
+PageSwitch page;
+
+struct PageTitle
+{
+	String title = page.page;
+	int x = 0;
+	int y = 0;
+};
+PageTitle page_now;
+
 
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RES, OLED_CS);
+
+void ShowPageTitle() {
+		//Page Now
+		page_now.y = map(page.step, 0, 127, 0, 8);
+		for (unsigned int i = 0; i < page_now.title.length(); i++) {
+			display.drawChar(page_now.x + (i*6), page_now.y, page_now.title[i], SSD1306_WHITE, SSD1306_BLACK, 1);
+		}
+		display.drawLine(page_now.x+1 + (page_now.title.length() * 6), page_now.y, page_now.x+1 + (page_now.title.length() * 6), page_now.y + 8, SSD1306_WHITE);
+		display.drawLine(page_now.x, page_now.y + 8, page_now.x+1 + (page_now.title.length() * 6), page_now.y + 8, SSD1306_WHITE);
+}
 
 // 'EZ_Pedal_Logo', 128x64px
 const unsigned char epd_bitmap_EZ_Pedal_Logo[] PROGMEM = {
@@ -153,12 +186,12 @@ void char_arpo() {
 	display.setTextColor(SSD1306_WHITE);
 	display.setTextSize(1);
 
-	for (int i = 0; text[i] != '\0'; i++)
+	for (int i = 0; i < 50; i++)
 	{
-		display.setCursor(x, y);
-		display.print(text);
+		display.drawLine(x, y, x, y + 8, SSD1306_BLACK);
+		x += 1;
 		display.display();
-		delay(100);
+		delay(10);
 	}
 
 	delay(100);
@@ -245,6 +278,8 @@ void setup()
 {
 	pinMode(15, INPUT);
 	deb = analogRead(15);
+	page.page = "main";
+
 	Serial.println("Device Online");
 
 	if (!display.begin(SSD1306_SWITCHCAPVCC))
@@ -291,21 +326,41 @@ void setup()
 
 void loop()
 {
+	display.clearDisplay();
+
 	//CC1 Output
 	int currentValue = analogRead(15);
-	if (abs(deb - currentValue) > 5) {
+	if (abs(deb - currentValue) > 7) {
 		deb = currentValue;
 		anaout1 = map(deb, 0, 1023, 0, 127);
 		Serial.print("MidiCC");
 		Serial.print(channel);
 		Serial.print(": ");
 		Serial.print(currentValue);
-		Serial.print("		");
+		Serial.print("	");
 		Serial.print(deb);
-		Serial.print("		");
+		Serial.print("	");
 		Serial.println(anaout1);
 		usbMidi.sendControlChange(1, anaout1, channel);
 	}
+
+	//display
+	if (page.page == "main") {
+		if (page.step < 127) {
+			page.step += 1;
+		}
+		//ValueLine
+		valueline.y = map(page.step, 0, 127, 70, 63);
+		for (int i = 0; i < 5; i++) {
+			display.drawLine(0, valueline.y - i, anaout1, valueline.y - i, SSD1306_WHITE);
+		}
+		display.drawLine(0,   valueline.y - 5, 127, valueline.y - 5, SSD1306_WHITE);
+		display.drawLine(0,   valueline.y, 	   127, valueline.y, 	 SSD1306_WHITE);
+		display.drawLine(0,   valueline.y, 	   0,   valueline.y - 5, SSD1306_WHITE);
+		display.drawLine(127, valueline.y, 	   127, valueline.y - 5, SSD1306_WHITE);
+		ShowPageTitle();
+	}
 	
-	
+	display.display();
+	delay(2);
 }
