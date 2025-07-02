@@ -23,6 +23,10 @@ int level = 0;
 int deadzone_s = 0;
 int deadzone_e = 1023;
 int select_item;
+int smooth_in;
+int temp1 = 0;
+int temp2 = 0;
+int temp3 = 0;
 const int pages_index = 3;
 String pages[pages_index] = {"main", "deadzon", "dev"};
 bool cLeft = false;
@@ -142,6 +146,12 @@ void ShowPageTitle() {
 		}
 		display.drawLine(page_now.x+1 + (page_now.title.length() * 6), page_now.y, page_now.x+1 + (page_now.title.length() * 6), page_now.y + 8, SSD1306_WHITE);
 		display.drawLine(page_now.x, page_now.y + 9, page_now.x+1 + (page_now.title.length() * 6), page_now.y + 9, SSD1306_WHITE);
+}
+
+void smooth_Circle_Test() {
+	int x = map(smoothValues[temp1], 0, SMOOTH_SIZE, 0, 127);
+	int y = 32;
+	display.drawCircle(x, y, 16, SSD1306_WHITE);
 }
 
 // 'EZ_Pedal_Logo', 128x64px
@@ -409,7 +419,7 @@ void loop() {
 	int currentValue = analogRead(15);
 	if (abs(deb - currentValue) > 7) {
 		deb = currentValue;
-		anaout1 = map(deb, 0, 1023, 0, 127);
+		anaout1 = map(deb, deadzone_s, deadzone_e, 0, 127);
 		Serial.print("MidiCC");
 		Serial.print(channel);
 		Serial.print(": ");
@@ -486,10 +496,13 @@ void loop() {
 	if (page.page == "main") {
 		if (page.step < 127) {
 			page.step += 1;
-			
+			temp1 = 0;
+			temp2 = 0;
+			temp3 = 0;
+			smooth_in = map(smoothValues[map(page.step, 0, 127, 0, SMOOTH_SIZE - 1)], 0, SMOOTH_SIZE - 1, 0, 127);
 		}
 		//ValueLine
-		valueline.y = map(page.step, 0, 127, 70, 63);
+		valueline.y = map(smooth_in, 0, 127, 70, 63);
 		for (int i = 0; i < 5; i++) {
 			display.drawLine(0, valueline.y - i, anaout1, valueline.y - i, SSD1306_WHITE);
 		}
@@ -502,10 +515,14 @@ void loop() {
 	else if (page.page == "deadzon") {
 		if (page.step < 127) {
 			page.step += 1;
+			temp1 = 0;
+			temp2 = 0;
+			temp3 = 0;
+			smooth_in = map(smoothValues[map(page.step, 0, 127, 0, SMOOTH_SIZE - 1)], 0, SMOOTH_SIZE - 1, 0, 127);
 		}
 		ShowPageTitle();
 		//ValueLine
-		valueline.y = map(page.step, 0, 127, -10, 32);
+		valueline.y = map(smooth_in, 0, 127, -10, 32);
 		for (int i = 0; i < 5; i++) {
 			display.drawLine(0, valueline.y - i, anaout1, valueline.y - i, SSD1306_WHITE);
 		}
@@ -517,8 +534,19 @@ void loop() {
 	else if (page.page == "dev") {
 		if (page.step < 127) {
 			page.step += 1;
+			temp1 = 0;
+			temp2 = 0;
+			temp3 = 0;
+			smooth_in = map(smoothValues[map(page.step, 0, 127, 0, SMOOTH_SIZE - 1)], 0, SMOOTH_SIZE - 1, 0, 127);
+		}
+		if (temp1 < SMOOTH_SIZE) {
+			temp1 += 1;
+		}
+		else {
+			temp1 = 0;
 		}
 		ShowPageTitle();
+		smooth_Circle_Test();
 		dev_showcurve();
 	}
 	
