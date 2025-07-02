@@ -4,6 +4,7 @@
 #include <Adafruit_GFX.h>
 #include <usb_midi.h>
 #include <vector>
+#include <cmath>
 
 usb_midi_class usbMidi;
 
@@ -18,10 +19,19 @@ usb_midi_class usbMidi;
 int channel = 1;
 int anaout1;
 int deb;
+int level = 0;
+int deadzone_s = 0;
+int deadzone_e = 1023;
+int select_item;
+const int pages_index = 3;
+String pages[pages_index] = {"main", "deadzon", "dev"};
 bool cLeft = false;
 bool cRight = false;
 bool cEnter = false;
 bool cExit = false;
+
+const int SMOOTH_SIZE = 1024;
+int smoothValues[SMOOTH_SIZE];
 
 struct ValueLine
 {
@@ -33,7 +43,7 @@ ValueLine valueline;
 
 struct PageSwitch
 {
-	String page = "main";
+	String page = pages[1];
 	int step = 0;
 };
 PageSwitch page;
@@ -49,6 +59,80 @@ PageTitle page_now;
 
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RES, OLED_CS);
+
+float easingCurve(int i, int size) {      
+	float out;
+	// 先归一化i到0-1范围
+	float t = static_cast<float>(i) / (SMOOTH_SIZE - 1);
+	// 计算三次缓入缓出
+	float value = (t < 0.5f) ? 4 * t * t * t : 1 - 4 * (1 - t) * (1 - t) * (1 - t);
+	// 映射到0-SMOOTH_SIZE范围
+	out = map(value, 0, 1, 0, SMOOTH_SIZE - 1);
+	return out;
+}
+
+void dev_showcurve() {
+	if (page.step <= 127) {
+		int x, y, s;
+		s = map(page.step, 0, 127, 0, SMOOTH_SIZE);
+		for (int i = 0; i < s; i++) {
+			x = map(i, 0, SMOOTH_SIZE, 0, 127);
+			y = map(smoothValues[i], 0, SMOOTH_SIZE, 63, 0);
+			display.drawPixel(x, y, SSD1306_WHITE);
+		}
+	}
+}
+
+// void dev_showcurve() {
+// 	if (page.step <= 127) {
+// 		int x, y, s;
+// 		s = map(page.step, 0, 127, 0, SMOOTH_SIZE);
+// 		for (int i = 0; i < s; i++) {
+// 			x = (int)map(easingCurve(i, 127), 0, 1, 0, 127);
+// 			y = (int)map(easingCurve(i, 127), 0, 1, 63, 0);
+// 			display.drawPixel(x, y, SSD1306_WHITE);
+// 			Serial.print("e: ");
+// 			Serial.println(easingCurve(i, 127));
+// 		}
+// 	}
+// }
+
+void Setup_SmoothCurveData() {
+    for(int i = 0; i < SMOOTH_SIZE; i++) {
+        // 先归一化i到0-1范围
+        float t = static_cast<float>(i) / (SMOOTH_SIZE - 1);
+        // 计算三次缓入缓出
+        float value = (t < 0.5f) ? 4 * t * t * t : 1 - 4 * (1 - t) * (1 - t) * (1 - t);
+        // 映射到0-SMOOTH_SIZE范围
+        smoothValues[i] = map(value, 0, 1, 0, SMOOTH_SIZE - 1);
+    }
+}
+
+
+void switchPage(int dir) { //dir only +1/-1
+	int current_page_index = 0;
+	int target_page_index;
+	
+	for (; current_page_index < pages_index; current_page_index++) {
+		if (page.page == pages[current_page_index]) {
+			break;
+		}
+	}
+	
+	target_page_index = current_page_index + dir;
+	if (target_page_index < 0) {
+		target_page_index = pages_index - 1;
+	}
+	else if (target_page_index >= pages_index) {
+		target_page_index = 0;
+	}
+	
+	page.page = pages[target_page_index];
+	page.step = 0;
+	page_now.title = page.page;
+	page_now.x = 0;
+	page_now.y = 0;
+}
 
 void ShowPageTitle() {
 		//Page Now
@@ -131,18 +215,6 @@ const int epd_bitmap_allArray_LEN = 1;
 const unsigned char *epd_bitmap_allArray[1] = {
 	epd_bitmap_EZ_Pedal_Logo};
 
-//  move(int xs, int ys, int xe, int ye, int step) {
-// 	//通过起始坐标，目标坐标，和时间，计算出每帧该元素的位置，并放入结构中。
-// 	x = xs;	
-// }
-
-// struct bitmap_1
-// 	{
-// 		int step;
-// 		int x[step];
-// 		int y[step];
-// 	};
-
 
 void Out_Bitmap_X(int x, int y, int LeftRight, int dist, int dly, int spd, const unsigned char *bmp)
 {
@@ -183,9 +255,7 @@ void char_arpo() {
 		x += 6;
 		delay(100);
 	}
-
 	delay(500);
-
 	x = 58;
 	y = 20;
 	display.setTextColor(SSD1306_WHITE);
@@ -198,9 +268,7 @@ void char_arpo() {
 		display.display();
 		delay(10);
 	}
-
 	delay(100);
-
 }
 
 // void Move_Bitmap(int x, int y, int x_t, int y_t, int dly, const unsigned char* bmp) {
@@ -288,6 +356,7 @@ void setup()
 	pinMode(7, INPUT);
 	deb = analogRead(15);
 	page.page = "main";
+	Setup_SmoothCurveData();
 
 	Serial.println("Device Online");
 
@@ -378,34 +447,46 @@ void loop() {
 		}
 	}
 
-	//Page Switch
-	//main settings
+	//Button response
+	//main deadzone
 	if (cLeft) {
 		cLeft = false;
-		if (page.page == "main") {
-			page.page = "settings";
-			page.step = 0;
-			page_now.title = page.page;
-			page_now.x = 0;
-			page_now.y = 0;
+		if (level == 0) {
+			switchPage(-1);
 		}
-		else if (page.page == "settings") {
-			page.page = "main";
-			page.step = 0;
-			page_now.title = page.page;
-			page_now.x = 0;
-			page_now.y = 0;
+		else if (level == 1) {
+			select_item -= 1;
+		}
+	}
+	if (cRight) {
+		cRight = false;
+		if (level == 0) {
+			switchPage(1);
+		}
+		else if (level == 1) {
+			select_item -= 1;
+		}
+	}
+	if (cEnter) {
+		cEnter = false;
+		if (level == 0) {
+
+		}
+		else if (level == 1) {
+
 		}
 	}
 	
 	
 
-	
+
+
 
 	//display
 	if (page.page == "main") {
 		if (page.step < 127) {
 			page.step += 1;
+			
 		}
 		//ValueLine
 		valueline.y = map(page.step, 0, 127, 70, 63);
@@ -418,12 +499,27 @@ void loop() {
 		display.drawLine(127, valueline.y, 	   127, valueline.y - 5, SSD1306_WHITE);
 		ShowPageTitle();
 	}
-
-	else if (page.page == "settings") {
+	else if (page.page == "deadzon") {
 		if (page.step < 127) {
 			page.step += 1;
 		}
 		ShowPageTitle();
+		//ValueLine
+		valueline.y = map(page.step, 0, 127, -10, 32);
+		for (int i = 0; i < 5; i++) {
+			display.drawLine(0, valueline.y - i, anaout1, valueline.y - i, SSD1306_WHITE);
+		}
+		display.drawLine(0,   valueline.y - 5, 127, valueline.y - 5, SSD1306_WHITE);
+		display.drawLine(0,   valueline.y, 	   127, valueline.y, 	 SSD1306_WHITE);
+		display.drawLine(0,   valueline.y, 	   0,   valueline.y - 5, SSD1306_WHITE);
+		display.drawLine(127, valueline.y, 	   127, valueline.y - 5, SSD1306_WHITE);
+	}
+	else if (page.page == "dev") {
+		if (page.step < 127) {
+			page.step += 1;
+		}
+		ShowPageTitle();
+		dev_showcurve();
 	}
 	
 	display.display();
