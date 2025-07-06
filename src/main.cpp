@@ -17,11 +17,12 @@ usb_midi_class usbMidi;
 #define OLED_CS 32
 
 int channel = 1;
-int anaout1;
+int analog1_maped;
+int analog1_output;
 int deb;
 int level = 0;
 int deadzone_s = 0;
-int deadzone_e = 1023;
+int deadzone_e = 127;
 int select_item;
 int smooth_in;
 int temp1 = 0;
@@ -29,6 +30,10 @@ int temp2 = 0;
 int temp3 = 0;
 const int pages_index = 3;
 String pages[pages_index] = {"main", "deadzon", "dev"};
+int  bLeft = 0;
+int  bRight = 0;
+int  bEnter = 0;
+int  bExit = 0;
 bool cLeft = false;
 bool cRight = false;
 bool cEnter = false;
@@ -63,6 +68,64 @@ PageTitle page_now;
 
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RES, OLED_CS);
+
+void deadzone_v() {
+	//ValueLine
+	const String string_raw = "RAW";
+	const String string_help = "Exit[   ]  Enter[   ]";
+	const String string_min = "min";
+	const String string_max = "max";
+	valueline.y = map(smooth_in, 0, 127, 128, 32);
+	display.drawLine(map(analog1_maped, 0, 127, 30, 127), valueline.y, map(analog1_maped, 0, 127, 30, 127), valueline.y - 5, SSD1306_WHITE); 	//RAW h_line
+	display.drawLine(map(deadzone_s, 0, 127, 30, 127), 	  valueline.y, map(deadzone_s,    0, 127, 30, 127), valueline.y - 5, SSD1306_WHITE); 	//deadzone start
+	display.drawLine(map(deadzone_e, 0, 127, 30, 127),    valueline.y, map(deadzone_e,    0, 127, 30, 127), valueline.y - 5, SSD1306_WHITE); 	//deadzone end
+	display.drawLine(30,  valueline.y - 6, 127, valueline.y - 6, SSD1306_WHITE);
+	display.drawLine(30,  valueline.y, 	   127, valueline.y, 	 SSD1306_WHITE);
+	display.drawLine(30,  valueline.y, 	   30,  valueline.y - 6, SSD1306_WHITE);
+	display.drawLine(127, valueline.y, 	   127, valueline.y - 6, SSD1306_WHITE);
+	for (unsigned int i = 0; i < string_raw.length(); i++) {
+		display.drawChar(0 + (i * 6), valueline.y - 6, string_raw[i], SSD1306_WHITE, SSD1306_BLACK, 1);
+	}
+
+	//show help
+	for (unsigned int i = 0; i < string_help.length(); i++) {
+		display.drawChar(i*6, 56, string_help[i], SSD1306_WHITE, SSD1306_BLACK, 1);
+	}
+	if (temp1 <= 0) {
+		for (unsigned int i = 0; i < string_min.length(); i++) {
+			display.drawChar(i*6+30, 56, string_min[i], SSD1306_WHITE, SSD1306_BLACK, 1);
+		}
+	}
+	else {
+		for (unsigned int i = 0; i < string_min.length(); i++) {
+			display.drawChar(i*6+30, 56, string_min[i], SSD1306_BLACK, SSD1306_WHITE, 1);
+		}
+	}
+	if (temp2 <= 0) {
+		for (unsigned int i = 0; i < string_max.length(); i++) {
+			display.drawChar(i*6+102, 56, string_max[i], SSD1306_WHITE, SSD1306_BLACK, 1);
+		}
+	}
+	else {
+		for (unsigned int i = 0; i < string_max.length(); i++) {
+			display.drawChar(i*6+102, 56, string_max[i], SSD1306_BLACK, SSD1306_WHITE, 1);
+		}
+	}
+
+	if (cExit) {
+		cExit = false;
+		deadzone_s = analog1_maped;
+		temp1 = 50;
+	}
+	if (cEnter) {
+		cEnter = false;
+		deadzone_e = analog1_maped;
+		temp2 = 50;
+	}
+	if (temp1 >= 0) {temp1 -= 1;}
+	if (temp2 >= 0) {temp2 -= 1;}
+	
+}
 
 float easingCurve(int i, int size) {      
 	float out;
@@ -136,17 +199,31 @@ void switchPage(int dir) { //dir only +1/-1
 	page_now.title = page.page;
 	page_now.x = 0;
 	page_now.y = 0;
+	temp1 = 0;
+	temp2 = 0;
+	temp3 = 0;
 }
 
-void ShowPageTitle() {
-		//Page Now
-		page_now.y = map(page.step, 0, 127, 0, 8);
+// void ShowPageTitle() {
+// 		//Page Now
+// 		page_now.y = map(page.step, 0, 127, 0, 8);
+// 		for (unsigned int i = 0; i < page_now.title.length(); i++) {
+// 			display.drawChar(page_now.x + (i*6), page_now.y, page_now.title[i], SSD1306_WHITE, SSD1306_BLACK, 1);
+// 		}
+// 		display.drawLine(page_now.x+1 + (page_now.title.length() * 6), page_now.y, page_now.x+1 + (page_now.title.length() * 6), page_now.y + 8, SSD1306_WHITE);
+// 		display.drawLine(page_now.x, page_now.y + 9, page_now.x+1 + (page_now.title.length() * 6), page_now.y + 9, SSD1306_WHITE);
+// }
+
+void ShowPageTitle() { //for X
+		page_now.x = map(smooth_in, 0, 127, -page_now.title.length() * 12, 0);
+		page_now.y = 8;
 		for (unsigned int i = 0; i < page_now.title.length(); i++) {
 			display.drawChar(page_now.x + (i*6), page_now.y, page_now.title[i], SSD1306_WHITE, SSD1306_BLACK, 1);
 		}
 		display.drawLine(page_now.x+1 + (page_now.title.length() * 6), page_now.y, page_now.x+1 + (page_now.title.length() * 6), page_now.y + 8, SSD1306_WHITE);
 		display.drawLine(page_now.x, page_now.y + 9, page_now.x+1 + (page_now.title.length() * 6), page_now.y + 9, SSD1306_WHITE);
 }
+
 
 void smooth_Circle_Test() {
 	int x = map(smoothValues[temp1], 0, SMOOTH_SIZE, 0, 127);
@@ -419,7 +496,16 @@ void loop() {
 	int currentValue = analogRead(15);
 	if (abs(deb - currentValue) > 7) {
 		deb = currentValue;
-		anaout1 = map(deb, deadzone_s, deadzone_e, 0, 127);
+		analog1_maped = map(deb, 0, 1023, 0, 127);
+		if (analog1_maped < deadzone_s) {
+			analog1_output = 0;	
+		}
+		else if (analog1_maped > deadzone_e) {
+			analog1_output = 127;
+		}
+		else {
+			analog1_output = map(analog1_maped, deadzone_s, deadzone_e, 0, 127);
+		}
 		Serial.print("MidiCC");
 		Serial.print(channel);
 		Serial.print(": ");
@@ -427,38 +513,54 @@ void loop() {
 		Serial.print("	");
 		Serial.print(deb);
 		Serial.print("	");
-		Serial.println(anaout1);
-		usbMidi.sendControlChange(1, anaout1, channel);
+		Serial.println(analog1_output);
+		usbMidi.sendControlChange(1, analog1_output, channel);
 	}
 
 	//Controll
 	if (digitalRead(4) == HIGH) {
-		delay(50);
+		bLeft = 100;
+	}
+	if (bLeft > 0) {
+		bLeft -= 1;
 		if (digitalRead(4) == LOW) {
+			bLeft = 0;
 			cLeft = true;
 		}
 	}
 	if (digitalRead(5) == HIGH) {
-		delay(50);
+		bRight = 100;
+	}
+	if (bRight > 0) {
+		bRight -= 1;
 		if (digitalRead(5) == LOW) {
+			bRight = 0;
 			cRight = true;
 		}
 	}
 	if (digitalRead(6) == HIGH) {
-		delay(50);
-		if (digitalRead(6) == LOW) {
+		bExit = 100;
+	}
+	if (bExit > 0) {
+		bExit -= 1;
+		if (digitalRead(6)) {
+			bExit = 0;
 			cExit = true;
 		}
 	}
 	if (digitalRead(7) == HIGH) {
-		delay(50);
-		if (digitalRead(7) == LOW) {
+		bEnter = 100;
+	}
+	if (bEnter > 0) {
+		bEnter -= 1;
+		if (digitalRead(7)) {
+			bEnter = 0;
 			cEnter = true;
 		}
 	}
 
 	//Button response
-	//main deadzone
+	//main deadzone dev
 	if (cLeft) {
 		cLeft = false;
 		if (level == 0) {
@@ -477,34 +579,17 @@ void loop() {
 			select_item -= 1;
 		}
 	}
-	if (cEnter) {
-		cEnter = false;
-		if (level == 0) {
-
-		}
-		else if (level == 1) {
-
-		}
-	}
-	
-	
-
-
-
 
 	//display
 	if (page.page == "main") {
 		if (page.step < 127) {
 			page.step += 1;
-			temp1 = 0;
-			temp2 = 0;
-			temp3 = 0;
 			smooth_in = map(smoothValues[map(page.step, 0, 127, 0, SMOOTH_SIZE - 1)], 0, SMOOTH_SIZE - 1, 0, 127);
 		}
 		//ValueLine
 		valueline.y = map(smooth_in, 0, 127, 70, 63);
 		for (int i = 0; i < 5; i++) {
-			display.drawLine(0, valueline.y - i, anaout1, valueline.y - i, SSD1306_WHITE);
+			display.drawLine(0, valueline.y - i, analog1_output, valueline.y - i, SSD1306_WHITE);
 		}
 		display.drawLine(0,   valueline.y - 5, 127, valueline.y - 5, SSD1306_WHITE);
 		display.drawLine(0,   valueline.y, 	   127, valueline.y, 	 SSD1306_WHITE);
@@ -521,15 +606,7 @@ void loop() {
 			smooth_in = map(smoothValues[map(page.step, 0, 127, 0, SMOOTH_SIZE - 1)], 0, SMOOTH_SIZE - 1, 0, 127);
 		}
 		ShowPageTitle();
-		//ValueLine
-		valueline.y = map(smooth_in, 0, 127, -10, 32);
-		for (int i = 0; i < 5; i++) {
-			display.drawLine(0, valueline.y - i, anaout1, valueline.y - i, SSD1306_WHITE);
-		}
-		display.drawLine(0,   valueline.y - 5, 127, valueline.y - 5, SSD1306_WHITE);
-		display.drawLine(0,   valueline.y, 	   127, valueline.y, 	 SSD1306_WHITE);
-		display.drawLine(0,   valueline.y, 	   0,   valueline.y - 5, SSD1306_WHITE);
-		display.drawLine(127, valueline.y, 	   127, valueline.y - 5, SSD1306_WHITE);
+		deadzone_v();
 	}
 	else if (page.page == "dev") {
 		if (page.step < 127) {
